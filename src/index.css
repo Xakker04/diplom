@@ -1,0 +1,85 @@
+/* ══════════════════════════════════════════════════════
+   QALEM GO — GLOBAL DESIGN SYSTEM
+   Color harmony: all neutrals share an indigo hue tint
+   so the entire UI feels like one coherent family.
+══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  /* ── Brand ── */
+  --primary:       #4f46e5;
+  --primary-dark:  #3730a3;
+  --primary-dim:   #6366f1;
+  --primary-light: #eef2ff;
+  --primary-mid:   #c7d2fe;
+
+  /* Warm amber accent — split-complementary to indigo */
+  --accent:        #d97706;
+  --accent-light:  #fef3c7;
+
+  /* ── Surfaces ── */
+  /* Harmony key: every surface has a faint indigo tint */
+  --bg:       #f5f4fb;   /* barely-lavender page bg */
+  --surface:  #ffffff;
+  --surface2: #f0effe;   /* secondary card bg */
+  --overlay:  rgba(15, 12, 40, 0.45);
+
+  /* ── Typography — all tinted toward indigo ── */
+  --ink:      #18152e;   /* near-black with indigo cast */
+  --text-2:   #5a566e;   /* mid purple-gray  */
+  --text-3:   #9896a8;   /* light purple-gray */
+
+  /* ── Borders ── */
+  --border:   #e2dfef;   /* indigo-tinted */
+  --border2:  #ede9fb;   /* lighter */
+
+  /* ── Feedback ── */
+  --error:        #dc2626;
+  --error-bg:     #fff1f2;
+  --error-border: #fecdd3;
+  --success:      #059669;
+
+  /* ── Fonts ── */
+  --font-display: 'Syne', sans-serif;
+  --font-body:    'DM Sans', sans-serif;
+  --font-mono:    'Space Mono', monospace;
+
+  /* ── Elevation ── */
+  --shadow-xs: 0 1px 2px rgba(18,15,40,0.06);
+  --shadow-sm: 0 2px 8px rgba(18,15,40,0.08);
+  --shadow-md: 0 6px 24px rgba(18,15,40,0.1);
+  --shadow-lg: 0 16px 48px rgba(18,15,40,0.13);
+
+  /* ── Radius ── */
+  --r-sm:  8px;
+  --r-md: 12px;
+  --r-lg: 18px;
+  --r-xl: 24px;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  font-family: var(--font-body);
+  font-optical-sizing: auto;
+  background: var(--bg);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.5;
+}
+
+button, input, select, textarea {
+  font-family: var(--font-body);
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
