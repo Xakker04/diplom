@@ -132,6 +132,26 @@
   margin: 0;
 }
 
+.pin-name-input {
+  width: 100%;
+  padding: 13px 14px;
+  margin-bottom: 14px;
+  font-size: 15px;
+  font-weight: 500;
+  font-family: var(--font-body);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-sm);
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+}
+.pin-name-input:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(79,70,229,0.12);
+}
+
 /* Individual digit boxes */
 .pin-boxes {
   display: flex;

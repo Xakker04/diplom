@@ -1,7 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { doc, getDoc } from 'firebase/firestore';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import {
+  doc, getDoc, addDoc, updateDoc, collection, onSnapshot, query, orderBy,
+} from 'firebase/firestore';
 import { db } from '../../firebase';
+import Character3D from '../character/Character3D';
+import { getCharacter } from '../character/characters';
 import './QuizGame.css';
 
 const LABELS = ['A', 'B', 'C', 'D'];
@@ -32,16 +36,23 @@ const Loader = () => (
 const QuizGame = () => {
   const { testId } = useParams();
   const navigate   = useNavigate();
+  const location   = useLocation();
 
   const [test, setTest]           = useState(null);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
 
-  const [phase, setPhase]         = useState('intro');   // intro | question | result | finish
+  const [phase, setPhase]         = useState('intro');   // intro | question | finish
   const [qIdx, setQIdx]           = useState(0);
   const [selected, setSelected]   = useState(null);      // null | answer index
   const [timeLeft, setTimeLeft]   = useState(0);
-  const [score, setScore]         = useState(0);
+  const [score, setScore]         = useState(0);          // jami ball
+  const [correctCount, setCorrect]= useState(0);          // to'g'ri javoblar soni
+  const [lastGain, setLastGain]   = useState(null);       // oxirgi savolda olingan ball
+
+  const [name, setName]           = useState(location.state?.username || '');
+  const [playerId, setPlayerId]   = useState(null);
+  const [board, setBoard]         = useState([]);         // jonli reyting
 
   /* ── Firebase dan test yuklash ── */
   useEffect(() => {
@@ -74,17 +85,60 @@ const QuizGame = () => {
   const handleAnswer = useCallback((idx) => {
     if (selected !== null) return;
     setSelected(idx);
-    const correct = currentCard?.correct;
-    const isRight = idx === correct;
-    if (isRight) setScore(p => p + 1);
+
+    /* Ball: to'g'ri javob 500..1000 (tez = ko'p), noto'g'ri/javobsiz = 0 */
+    const isRight = idx !== null && idx === currentCard?.correct;
+    const total   = test.time ?? 30;
+    const gained  = isRight ? 500 + Math.round((500 * Math.max(0, timeLeft)) / total) : 0;
+
+    setLastGain(gained);
+    if (isRight) setCorrect(p => p + 1);
+
+    const newScore = score + gained;
+    if (gained) setScore(newScore);
+    if (playerId) {
+      updateDoc(doc(db, 'tests', testId, 'players', playerId), { score: newScore })
+        .catch(() => {});
+    }
+
     setTimeout(() => {
-      if (qIdx + 1 < test.cards.length) {
-        startQuestion(qIdx + 1);
-      } else {
-        setPhase('finish');
-      }
-    }, 1500);
-  }, [selected, currentCard, qIdx, test, startQuestion]);
+      if (qIdx + 1 < test.cards.length) startQuestion(qIdx + 1);
+      else setPhase('finish');
+    }, 1800);
+  }, [selected, currentCard, qIdx, test, startQuestion, timeLeft, score, playerId, testId]);
+
+  /* ── O'yinni boshlash: o'yinchini reytingga qo'shish ── */
+  const beginGame = useCallback(async () => {
+    if (!name.trim()) return;
+    setScore(0); setCorrect(0); setLastGain(null);
+    try {
+      const ref = await addDoc(collection(db, 'tests', testId, 'players'), {
+        username: name.trim(),
+        score: 0,
+        joinedAt: Date.now(),
+      });
+      setPlayerId(ref.id);
+    } catch { /* reyting yozilmasa ham o'yin davom etadi */ }
+    startQuestion(0);
+  }, [name, testId, startQuestion]);
+
+  /* ── Qayta urinish ── */
+  const retry = useCallback(() => {
+    setScore(0); setCorrect(0); setLastGain(null);
+    if (playerId) {
+      updateDoc(doc(db, 'tests', testId, 'players', playerId), { score: 0 }).catch(() => {});
+    }
+    startQuestion(0);
+  }, [playerId, testId, startQuestion]);
+
+  /* ── Jonli reyting (onSnapshot) ── */
+  useEffect(() => {
+    const qy = query(collection(db, 'tests', testId, 'players'), orderBy('score', 'desc'));
+    const unsub = onSnapshot(qy, snap => {
+      setBoard(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+    }, () => {});
+    return () => unsub();
+  }, [testId]);
 
   /* ── 3. Timer (handleAnswer'dan KEYIN) ── */
   useEffect(() => {
@@ -103,6 +157,30 @@ const QuizGame = () => {
 
   const timerPct = test ? (timeLeft / (test.time ?? 30)) * 100 : 100;
 
+  /* ── Personaj (mascot) ── */
+  const charId = getCharacter(test?.character)?.id;
+  const Mascot = charId ? (
+    <div className="qg-mascot">
+      <Character3D variant={charId} />
+    </div>
+  ) : null;
+
+  /* ── Reyting ── */
+  const myRank = board.findIndex(p => p.id === playerId);
+  const renderBoard = (compact) => (
+    <div className={`qg-board ${compact ? 'compact' : ''}`}>
+      <div className="qg-board-title">🏆 Reyting</div>
+      {board.length === 0 && <div className="qg-board-empty">Hali o'yinchi yo'q</div>}
+      {board.slice(0, compact ? 5 : 20).map((p, i) => (
+        <div key={p.id} className={`qg-board-row ${p.id === playerId ? 'me' : ''}`}>
+          <span className="qg-board-rank">{i + 1}</span>
+          <span className="qg-board-name">{p.username}</span>
+          <span className="qg-board-score">{p.score}</span>
+        </div>
+      ))}
+    </div>
+  );
+
   /* ── Render ── */
   if (loading) return <Loader />;
   if (error)   return (
@@ -120,8 +198,23 @@ const QuizGame = () => {
         <div className="qg-intro-emoji">📝</div>
         <h1 className="qg-intro-title">{test.title}</h1>
         <p className="qg-intro-meta">{test.cards.length} ta savol · {test.time ?? 30} sek/savol</p>
-        <button className="qg-start-btn" onClick={() => startQuestion(0)}>Boshlash</button>
+        <input
+          className="qg-name-input"
+          type="text"
+          placeholder="Ismingiz"
+          value={name}
+          onChange={e => setName(e.target.value.slice(0, 20))}
+          onKeyDown={e => e.key === 'Enter' && beginGame()}
+          maxLength={20}
+        />
+        <button className="qg-start-btn" onClick={beginGame} disabled={!name.trim()}>
+          Boshlash
+        </button>
+        {board.length > 0 && (
+          <p className="qg-intro-joined">{board.length} o'yinchi qatnashmoqda</p>
+        )}
       </div>
+      {Mascot}
     </div>
   );
 
@@ -129,23 +222,21 @@ const QuizGame = () => {
   if (phase === 'finish') return (
     <div className="qg-slide" style={bgStyle()}>
       <div className="qg-overlay" />
-      <div className="qg-intro-card">
+      <div className="qg-intro-card qg-finish-card">
         <div className="qg-intro-emoji">
-          {score === test.cards.length ? '🏆' : score >= test.cards.length / 2 ? '🎉' : '😔'}
+          {correctCount === test.cards.length ? '🏆' : correctCount >= test.cards.length / 2 ? '🎉' : '😔'}
         </div>
         <h2 className="qg-intro-title">Test tugadi!</h2>
-        <p className="qg-finish-score">
-          {score} / {test.cards.length}
-        </p>
+        <p className="qg-finish-score">{score}</p>
         <p className="qg-intro-meta">
-          {score === test.cards.length
-            ? "Mukammal natija! Barcha savollarga to'g'ri javob berdingiz!"
-            : score >= test.cards.length / 2
-            ? "Yaxshi natija! Davom eting."
-            : "Ko'proq mashq qiling!"}
+          {correctCount} / {test.cards.length} to'g'ri javob
+          {myRank >= 0 && ` · ${myRank + 1}-o'rin`}
         </p>
+
+        {renderBoard(false)}
+
         <div className="qg-finish-btns">
-          <button className="qg-start-btn" onClick={() => { setScore(0); startQuestion(0); }}>
+          <button className="qg-start-btn" onClick={retry}>
             Qayta urinish
           </button>
           <button className="qg-outline-btn" onClick={() => navigate('/')}>
@@ -153,6 +244,7 @@ const QuizGame = () => {
           </button>
         </div>
       </div>
+      {Mascot}
     </div>
   );
 
@@ -161,9 +253,12 @@ const QuizGame = () => {
     <div className="qg-slide" style={bgStyle()}>
       <div className="qg-overlay" />
 
+      {/* Jonli reyting (chap-yuqori) */}
+      <div className="qg-board-float">{renderBoard(true)}</div>
+
       <div className="qg-question-wrap">
 
-        {/* Yuqori panel: progress + timer */}
+        {/* Yuqori panel: progress + timer + ball */}
         <div className="qg-topbar">
           <span className="qg-progress">{qIdx + 1} / {test.cards.length}</span>
           <div className="qg-timer-track">
@@ -173,11 +268,17 @@ const QuizGame = () => {
             />
           </div>
           <span className={`qg-timer-num ${timeLeft <= 5 ? 'urgent' : ''}`}>{timeLeft}</span>
+          <span className="qg-score-chip">{score}</span>
         </div>
 
         {/* Savol matni */}
         <div className="qg-question-box">
           <p className="qg-question-text">{currentCard?.question || `${qIdx + 1}-savol`}</p>
+          {selected !== null && (
+            <p className={`qg-gain ${lastGain > 0 ? 'win' : 'zero'}`}>
+              {lastGain > 0 ? `+${lastGain} ball!` : 'Ball yo\'q'}
+            </p>
+          )}
         </div>
 
         {/* Javoblar 2×2 */}
@@ -204,6 +305,7 @@ const QuizGame = () => {
           })}
         </div>
       </div>
+      {Mascot}
     </div>
   );
 };

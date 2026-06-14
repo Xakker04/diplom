@@ -575,6 +575,38 @@
   background: #eee;
 }
 
+/* ── Personaj tanlash ── */
+.bg-char-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+.bg-char-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 6px;
+  background: #f7f7fb;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+}
+.bg-char-item:hover { transform: translateY(-1px); background: #f0f0f7; }
+.bg-char-item.selected {
+  border-color: #6c63ff;
+  background: #efeeff;
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+}
+.bg-char-emoji { font-size: 26px; line-height: 1; }
+.bg-char-label { font-size: 12px; font-weight: 600; color: #1a1a2e; }
+.bg-char-hint {
+  font-size: 11px;
+  color: #999;
+  margin: 0;
+}
+
 .bg-upload-label {
   font-size: 12px;
   font-weight: 600;

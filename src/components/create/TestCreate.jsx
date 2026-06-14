@@ -2,6 +2,7 @@ import { memo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { CHARACTERS } from '../character/characters';
 import './TestCreate.css';
 
 const LABELS  = ['A', 'B', 'C', 'D'];
@@ -126,9 +127,28 @@ const QuestionCard = ({ card, sectionIdx, onChange, bgStyle, bgImage }) => {
 
 const TIME_PRESETS = [10, 20, 30, 60, 90, 120];
 
-/* ── O'ng sidebar: orqa fon + vaqt ── */
-const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange }) => (
+/* ── O'ng sidebar: orqa fon + vaqt + personaj ── */
+const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange, character, onCharacterChange }) => (
   <aside className="bg-sidebar">
+    {/* ── Personaj ── */}
+    <div className="bg-sidebar-title">Personaj</div>
+    <div className="bg-char-row">
+      {CHARACTERS.map(ch => (
+        <button
+          key={ch.id}
+          className={`bg-char-item ${character === ch.id ? 'selected' : ''}`}
+          onClick={() => onCharacterChange(character === ch.id ? null : ch.id)}
+          title={ch.label}
+        >
+          <span className="bg-char-emoji">{ch.emoji}</span>
+          <span className="bg-char-label">{ch.label}</span>
+        </button>
+      ))}
+    </div>
+    <p className="bg-char-hint">O'yin paytida ekranda ko'rinadi (ixtiyoriy)</p>
+
+    <div className="bg-divider" />
+
     <div className="bg-sidebar-title">Orqa fon</div>
 
     <div className="bg-presets">
@@ -211,6 +231,7 @@ const TestCreate = () => {
   const [selectedBg, setSelectedBg]     = useState('g1');
   const [bgImage, setBgImage]           = useState(null);
   const [time, setTime]                 = useState(30);
+  const [character, setCharacter]       = useState('boy');
   const [saving, setSaving]             = useState(false);
   const [pin, setPin]                   = useState(null);
 
@@ -278,6 +299,7 @@ const TestCreate = () => {
         bg: selectedBg,
         bgImage: bgImage ?? null,
         time,
+        character: character ?? null,
         createdAt: Date.now(),
       });
       setPin(code);
@@ -371,6 +393,8 @@ const TestCreate = () => {
           onImageRemove={() => setBgImage(null)}
           time={time}
           onTimeChange={setTime}
+          character={character}
+          onCharacterChange={setCharacter}
         />
       </div>
 
