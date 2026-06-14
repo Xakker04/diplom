@@ -6,6 +6,8 @@ import {
 import { db } from '../../firebase';
 import Character3D from '../character/Character3D';
 import { getCharacter } from '../character/characters';
+import { getCategory } from '../../data/categories';
+import AIEvaluation from '../ai/AIEvaluation';
 import './QuizGame.css';
 
 const LABELS = ['A', 'B', 'C', 'D'];
@@ -53,6 +55,8 @@ const QuizGame = () => {
   const [name, setName]           = useState(location.state?.username || '');
   const [playerId, setPlayerId]   = useState(null);
   const [board, setBoard]         = useState([]);         // jonli reyting
+  const [log, setLog]             = useState([]);         // AI tahlil uchun javoblar
+  const [showAI, setShowAI]       = useState(false);      // AI tahlil modali
 
   /* ── Firebase dan test yuklash ── */
   useEffect(() => {
@@ -94,6 +98,14 @@ const QuizGame = () => {
     setLastGain(gained);
     if (isRight) setCorrect(p => p + 1);
 
+    // AI tahlil uchun javobni yozib boramiz
+    setLog(prev => [...prev, {
+      question: currentCard?.question || '',
+      studentAnswer: idx == null ? null : (currentCard?.answers?.[idx] ?? `variant ${idx + 1}`),
+      correct: currentCard?.answers?.[currentCard?.correct] ?? `variant ${(currentCard?.correct ?? 0) + 1}`,
+      isRight,
+    }]);
+
     const newScore = score + gained;
     if (gained) setScore(newScore);
     if (playerId) {
@@ -110,7 +122,7 @@ const QuizGame = () => {
   /* ── O'yinni boshlash: o'yinchini reytingga qo'shish ── */
   const beginGame = useCallback(async () => {
     if (!name.trim()) return;
-    setScore(0); setCorrect(0); setLastGain(null);
+    setScore(0); setCorrect(0); setLastGain(null); setLog([]);
     try {
       const ref = await addDoc(collection(db, 'tests', testId, 'players'), {
         username: name.trim(),
@@ -124,7 +136,7 @@ const QuizGame = () => {
 
   /* ── Qayta urinish ── */
   const retry = useCallback(() => {
-    setScore(0); setCorrect(0); setLastGain(null);
+    setScore(0); setCorrect(0); setLastGain(null); setLog([]);
     if (playerId) {
       updateDoc(doc(db, 'tests', testId, 'players', playerId), { score: 0 }).catch(() => {});
     }
@@ -236,6 +248,9 @@ const QuizGame = () => {
         {renderBoard(false)}
 
         <div className="qg-finish-btns">
+          <button className="qg-ai-btn" onClick={() => setShowAI(true)}>
+            🤖 AI bilim tahlili
+          </button>
           <button className="qg-start-btn" onClick={retry}>
             Qayta urinish
           </button>
@@ -245,6 +260,20 @@ const QuizGame = () => {
         </div>
       </div>
       {Mascot}
+
+      {showAI && (
+        <AIEvaluation
+          payload={{
+            title: test.title,
+            subject: getCategory(test.category)?.label || 'Umumiy',
+            score,
+            correctCount,
+            total: test.cards.length,
+            items: log,
+          }}
+          onClose={() => setShowAI(false)}
+        />
+      )}
     </div>
   );
 

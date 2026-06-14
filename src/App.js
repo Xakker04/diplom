@@ -1,7 +1,7 @@
 import './App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { Main, Login, Register, Navbar, Game, Dashboard, TestCreate, QuizGame } from './pages';
+import { Main, Login, Register, Navbar, Game, Dashboard, TestCreate, QuizGame, Learn } from './pages';
 import { useAuth } from './context/AuthContext';
 import Chatbot from './components/chatbot/Chatbot';
 
@@ -27,6 +27,7 @@ function App() {
         <Route path="/login"    element={<PublicRoute><Login /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><Register /></PublicRoute>} />
         <Route path="/game"           element={<Game />} />
+        <Route path="/learn"          element={<Learn />} />
         <Route path="/play/:testId"   element={<QuizGame />} />
         <Route path="/dashboard" element={
           <ProtectedRoute><Dashboard /></ProtectedRoute>

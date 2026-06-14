@@ -110,6 +110,20 @@
 }
 .qg-start-btn:hover { opacity: 0.9; transform: translateY(-1px); }
 .qg-finish-btns { display: flex; flex-direction: column; gap: 10px; }
+.qg-ai-btn {
+  width: 100%;
+  padding: 14px 0;
+  background: linear-gradient(135deg, #8e54e9, #4776e6);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.1s;
+  font-family: inherit;
+}
+.qg-ai-btn:hover { opacity: 0.92; transform: translateY(-1px); }
 .qg-outline-btn {
   width: 100%;
   padding: 13px 0;

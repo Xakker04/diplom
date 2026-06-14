@@ -1,6 +1,9 @@
-import { memo } from 'react';
+import { memo, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
+import { getCategory } from '../../data/categories';
 import './Dashboard.css';
 
 /* ── SVG icon set ── */
@@ -71,12 +74,11 @@ const IconInbox = () => (
   </svg>
 );
 
-const STATS = [
-  { Icon: IconFile,    label: "Testlar",     value: 0, cls: 'purple' },
-  { Icon: IconGamepad, label: "O'yinlar",    value: 0, cls: 'green'  },
-  { Icon: IconTrophy,  label: "G'alabalar",  value: 0, cls: 'amber'  },
-  { Icon: IconStar,    label: "Umumiy ball", value: 0, cls: 'blue'   },
-];
+const IconTrash = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4h6v2"/>
+  </svg>
+);
 
 const ACTIONS = [
   { Icon: IconFilePlus,     title: 'Test yaratish',       desc: "Savollar va javoblar bilan test tuzing va o'quvchilaringizni sinab ko'ring", route: '/create/test', cls: 'v1' },
@@ -88,6 +90,44 @@ const Dashboard = () => {
   const { currentUser } = useAuth();
   const navigate = useNavigate();
   const initial  = currentUser?.name?.charAt(0).toUpperCase() ?? '?';
+
+  const [tests, setTests]     = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchTests = useCallback(async () => {
+    if (!currentUser?.email) { setLoading(false); return; }
+    try {
+      const q = query(collection(db, 'tests'), where('ownerEmail', '==', currentUser.email));
+      const snap = await getDocs(q);
+      const list = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (b.createdAt ?? 0) - (a.createdAt ?? 0));
+      setTests(list);
+    } catch (e) {
+      console.error('Testlarni yuklashda xatolik:', e);
+    } finally {
+      setLoading(false);
+    }
+  }, [currentUser]);
+
+  useEffect(() => { fetchTests(); }, [fetchTests]);
+
+  const deleteTest = async (id) => {
+    if (!window.confirm("Bu testni o'chirishni tasdiqlaysizmi?")) return;
+    try {
+      await deleteDoc(doc(db, 'tests', id));
+      setTests(prev => prev.filter(t => t.id !== id));
+    } catch (e) {
+      alert('O\'chirishda xatolik: ' + e.message);
+    }
+  };
+
+  const STATS = [
+    { Icon: IconFile,    label: "Testlar",     value: tests.length, cls: 'purple' },
+    { Icon: IconGamepad, label: "O'yinlar",    value: 0,            cls: 'green'  },
+    { Icon: IconTrophy,  label: "G'alabalar",  value: 0,            cls: 'amber'  },
+    { Icon: IconStar,    label: "Umumiy ball", value: 0,            cls: 'blue'   },
+  ];
 
   return (
     <div className="dashboard-page">
@@ -145,14 +185,44 @@ const Dashboard = () => {
               + Yangi test
             </button>
           </div>
-          <div className="db-empty">
-            <div className="db-empty-icon"><IconInbox /></div>
-            <div className="db-empty-title">Hali test yaratilmagan</div>
-            <div className="db-empty-desc">Birinchi testingizni yarating va o'quvchilaringizni sinab ko'ring</div>
-            <button className="db-empty-btn" onClick={() => navigate('/create/test')}>
-              Test yaratish
-            </button>
-          </div>
+          {loading ? (
+            <div className="db-empty"><div className="db-empty-title">Yuklanmoqda...</div></div>
+          ) : tests.length === 0 ? (
+            <div className="db-empty">
+              <div className="db-empty-icon"><IconInbox /></div>
+              <div className="db-empty-title">Hali test yaratilmagan</div>
+              <div className="db-empty-desc">Birinchi testingizni yarating va o'quvchilaringizni sinab ko'ring</div>
+              <button className="db-empty-btn" onClick={() => navigate('/create/test')}>
+                Test yaratish
+              </button>
+            </div>
+          ) : (
+            <div className="db-test-list">
+              {tests.map(t => {
+                const cat = getCategory(t.category);
+                return (
+                  <div className="db-test-card" key={t.id}>
+                    <div className="db-test-main">
+                      <div className="db-test-title">{t.title}</div>
+                      <div className="db-test-meta">
+                        {cat && <span className="db-test-badge">{cat.emoji} {cat.label}</span>}
+                        <span>{t.cards?.length ?? 0} savol</span>
+                        <span className="db-test-pin">PIN: {t.pin}</span>
+                      </div>
+                    </div>
+                    <div className="db-test-actions">
+                      <button className="db-test-play" onClick={() => navigate(`/play/${t.id}`)}>
+                        O'ynash
+                      </button>
+                      <button className="db-test-del" onClick={() => deleteTest(t.id)} title="O'chirish">
+                        <IconTrash />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
 
       </div>

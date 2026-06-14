@@ -247,6 +247,91 @@
 }
 .db-empty-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
 
+/* ── Test ro'yxati ── */
+.db-test-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.db-test-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md, 12px);
+  padding: 16px 18px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.db-test-card:hover {
+  border-color: var(--primary-mid);
+  box-shadow: 0 4px 14px rgba(0,0,0,0.06);
+}
+.db-test-main { flex: 1; min-width: 0; }
+.db-test-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.db-test-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.db-test-badge {
+  background: var(--primary-light);
+  color: var(--primary);
+  border: 1px solid var(--primary-mid);
+  padding: 2px 9px;
+  border-radius: 99px;
+  font-weight: 600;
+}
+.db-test-pin {
+  font-family: var(--font-mono, monospace);
+  font-weight: 700;
+  color: var(--ink);
+}
+.db-test-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.db-test-play {
+  padding: 9px 18px;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm, 8px);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s;
+}
+.db-test-play:hover { background: var(--primary-dark); }
+.db-test-del {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm, 8px);
+  color: var(--text-3);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.db-test-del:hover { background: #fee; border-color: #f88; color: #d33; }
+
 /* Responsive */
 @media (max-width: 900px) {
   .db-hero    { padding: 24px 24px; }

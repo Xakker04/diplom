@@ -2,7 +2,9 @@ import { memo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
+import { useAuth } from '../../context/AuthContext';
 import { CHARACTERS } from '../character/characters';
+import { CATEGORIES } from '../../data/categories';
 import './TestCreate.css';
 
 const LABELS  = ['A', 'B', 'C', 'D'];
@@ -128,8 +130,22 @@ const QuestionCard = ({ card, sectionIdx, onChange, bgStyle, bgImage }) => {
 const TIME_PRESETS = [10, 20, 30, 60, 90, 120];
 
 /* ── O'ng sidebar: orqa fon + vaqt + personaj ── */
-const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange, character, onCharacterChange }) => (
+const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange, character, onCharacterChange, category, onCategoryChange }) => (
   <aside className="bg-sidebar">
+    {/* ── Fan ── */}
+    <div className="bg-sidebar-title">Fan</div>
+    <select
+      className="bg-cat-select"
+      value={category}
+      onChange={e => onCategoryChange(e.target.value)}
+    >
+      {CATEGORIES.map(c => (
+        <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
+      ))}
+    </select>
+
+    <div className="bg-divider" />
+
     {/* ── Personaj ── */}
     <div className="bg-sidebar-title">Personaj</div>
     <div className="bg-char-row">
@@ -225,6 +241,7 @@ const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove
 /* ── Asosiy komponent ── */
 const TestCreate = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
   const [cards, setCards]               = useState(initialCards);
   const [selectedId, setSelectedId]     = useState(initialCards[0].id);
   const [testTitle, setTestTitle]       = useState('');
@@ -232,6 +249,7 @@ const TestCreate = () => {
   const [bgImage, setBgImage]           = useState(null);
   const [time, setTime]                 = useState(30);
   const [character, setCharacter]       = useState('boy');
+  const [category, setCategory]         = useState('matematika');
   const [saving, setSaving]             = useState(false);
   const [pin, setPin]                   = useState(null);
 
@@ -300,6 +318,9 @@ const TestCreate = () => {
         bgImage: bgImage ?? null,
         time,
         character: character ?? null,
+        category,
+        ownerEmail: currentUser?.email ?? null,
+        ownerName: currentUser?.name ?? null,
         createdAt: Date.now(),
       });
       setPin(code);
@@ -395,6 +416,8 @@ const TestCreate = () => {
           onTimeChange={setTime}
           character={character}
           onCharacterChange={setCharacter}
+          category={category}
+          onCategoryChange={setCategory}
         />
       </div>
 

@@ -176,16 +176,21 @@ const Main = () => {
             <p className="pin-error"><IconAlert /> {error}</p>
           )}
 
-          <button
-            className={`pin-enter-btn ${pin.length === 6 && !loading ? 'active' : ''}`}
-            onClick={handleEnter}
-            disabled={pin.length !== 6 || loading}
-          >
-            {loading
-              ? <><span className="pin-spinner" /> Tekshirilmoqda...</>
-              : 'Kirish →'
-            }
-          </button>
+          <div className="pin-actions">
+            <button
+              className={`pin-enter-btn ${pin.length === 6 && !loading ? 'active' : ''}`}
+              onClick={handleEnter}
+              disabled={pin.length !== 6 || loading}
+            >
+              {loading
+                ? <><span className="pin-spinner" /> Tekshirilmoqda...</>
+                : 'Kirish →'
+              }
+            </button>
+            <button className="pin-learn-btn" onClick={() => navigate('/learn')}>
+              📚 Learn
+            </button>
+          </div>
 
           <div className="pin-divider">yoki</div>
           <p style={{ textAlign: 'center', color: 'var(--text-3)', fontSize: 13, margin: '12px 0 0', fontWeight: 500 }}>

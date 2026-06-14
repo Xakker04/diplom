@@ -575,6 +575,21 @@
   background: #eee;
 }
 
+/* ── Fan tanlash ── */
+.bg-cat-select {
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  color: #1a1a2e;
+  background: #f7f7fb;
+  border: 1.5px solid #e3e3ee;
+  border-radius: 10px;
+  cursor: pointer;
+}
+.bg-cat-select:focus { outline: none; border-color: #6c63ff; }
+
 /* ── Personaj tanlash ── */
 .bg-char-row {
   display: grid;

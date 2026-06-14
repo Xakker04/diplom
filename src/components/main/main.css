@@ -209,8 +209,33 @@
   gap: 5px;
 }
 
-.pin-enter-btn {
+.pin-actions {
+  display: flex;
+  gap: 10px;
   margin-top: 18px;
+}
+.pin-learn-btn {
+  flex-shrink: 0;
+  padding: 14px 20px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--bg);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: all 0.18s;
+  white-space: nowrap;
+}
+.pin-learn-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-1px);
+}
+
+.pin-enter-btn {
+  flex: 1;
   width: 100%;
   padding: 14px;
   font-size: 14px;
