@@ -57,7 +57,6 @@ const FEATURES = [
 
 const Main = () => {
   const [pin, setPin]           = useState('');
-  const [username, setUsername] = useState('');
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
   const navigate                = useNavigate();
@@ -65,16 +64,15 @@ const Main = () => {
 
   const handleEnter = async () => {
     if (pin.length !== 6 || loading) return;
-    if (!username.trim()) { setError('Ismingizni kiriting.'); return; }
     setLoading(true);
     setError('');
     try {
       const q    = query(collection(db, 'tests'), where('pin', '==', pin));
       const snap = await getDocs(q);
-      if (snap.empty) {
-        setError('Bunday PIN kod topilmadi. Qayta tekshiring.');
+      if (snap.empty || !snap.docs[0].data().live) {
+        setError('Jonli sessiya topilmadi. PIN noto\'g\'ri yoki sessiya tugagan.');
       } else {
-        navigate(`/play/${snap.docs[0].id}`, { state: { username: username.trim() } });
+        navigate(`/play/${snap.docs[0].id}`);
       }
     } catch (err) {
       console.error('Firebase error:', err);
@@ -131,16 +129,6 @@ const Main = () => {
             <h2 className="pin-card-title">Testga kirish</h2>
             <p className="pin-card-sub">6 xonali PIN kodni kiriting</p>
           </div>
-
-          <input
-            className="pin-name-input"
-            type="text"
-            placeholder="Ismingiz (reytingda ko'rinadi)"
-            value={username}
-            onChange={e => { setError(''); setUsername(e.target.value.slice(0, 20)); }}
-            disabled={loading}
-            maxLength={20}
-          />
 
           <div className="pin-boxes-wrap" onClick={() => inputRef.current?.focus()}>
             <div className="pin-boxes">

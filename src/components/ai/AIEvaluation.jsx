@@ -78,7 +78,7 @@ const AIEvaluation = ({ payload, onClose }) => {
     <div className="ai-overlay" onClick={onClose}>
       <div className="ai-modal" onClick={e => e.stopPropagation()}>
         <div className="ai-head">
-          <div className="ai-head-title">🤖 AI bilim tahlili</div>
+          <div className="ai-head-title"> AI bilim tahlili</div>
           <button className="ai-close" onClick={onClose}>✕</button>
         </div>
 

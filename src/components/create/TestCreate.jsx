@@ -1,9 +1,8 @@
 import { memo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { collection, addDoc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
-import { CHARACTERS } from '../character/characters';
 import { CATEGORIES } from '../../data/categories';
 import './TestCreate.css';
 
@@ -130,7 +129,7 @@ const QuestionCard = ({ card, sectionIdx, onChange, bgStyle, bgImage }) => {
 const TIME_PRESETS = [10, 20, 30, 60, 90, 120];
 
 /* ── O'ng sidebar: orqa fon + vaqt + personaj ── */
-const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange, character, onCharacterChange, category, onCategoryChange }) => (
+const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove, time, onTimeChange, category, onCategoryChange }) => (
   <aside className="bg-sidebar">
     {/* ── Fan ── */}
     <div className="bg-sidebar-title">Fan</div>
@@ -143,25 +142,6 @@ const BgSidebar = ({ selectedBg, onSelect, bgImage, onImageUpload, onImageRemove
         <option key={c.id} value={c.id}>{c.emoji} {c.label}</option>
       ))}
     </select>
-
-    <div className="bg-divider" />
-
-    {/* ── Personaj ── */}
-    <div className="bg-sidebar-title">Personaj</div>
-    <div className="bg-char-row">
-      {CHARACTERS.map(ch => (
-        <button
-          key={ch.id}
-          className={`bg-char-item ${character === ch.id ? 'selected' : ''}`}
-          onClick={() => onCharacterChange(character === ch.id ? null : ch.id)}
-          title={ch.label}
-        >
-          <span className="bg-char-emoji">{ch.emoji}</span>
-          <span className="bg-char-label">{ch.label}</span>
-        </button>
-      ))}
-    </div>
-    <p className="bg-char-hint">O'yin paytida ekranda ko'rinadi (ixtiyoriy)</p>
 
     <div className="bg-divider" />
 
@@ -248,10 +228,8 @@ const TestCreate = () => {
   const [selectedBg, setSelectedBg]     = useState('g1');
   const [bgImage, setBgImage]           = useState(null);
   const [time, setTime]                 = useState(30);
-  const [character, setCharacter]       = useState('boy');
   const [category, setCategory]         = useState('matematika');
   const [saving, setSaving]             = useState(false);
-  const [pin, setPin]                   = useState(null);
 
   const selectedCard = cards.find(c => c.id === selectedId) ?? cards[0];
 
@@ -293,37 +271,24 @@ const TestCreate = () => {
     reader.readAsDataURL(file);
   };
 
-  const generatePin = async () => {
-    let code;
-    let exists = true;
-    while (exists) {
-      code = String(Math.floor(100000 + Math.random() * 900000));
-      const q = query(collection(db, 'tests'), where('pin', '==', code));
-      const snap = await getDocs(q);
-      exists = !snap.empty;
-    }
-    return code;
-  };
-
   const handleSave = async () => {
     if (!testTitle.trim()) { alert("Test sarlavhasini kiriting!"); return; }
     setSaving(true);
     try {
-      const code = await generatePin();
       await addDoc(collection(db, 'tests'), {
-        pin: code,
         title: testTitle.trim(),
         cards: cards.map(({ id: _id, ...rest }) => rest),
         bg: selectedBg,
         bgImage: bgImage ?? null,
         time,
-        character: character ?? null,
         category,
+        pin: null,
+        live: false,
         ownerEmail: currentUser?.email ?? null,
         ownerName: currentUser?.name ?? null,
         createdAt: Date.now(),
       });
-      setPin(code);
+      navigate('/dashboard');
     } catch (err) {
       alert('Xatolik: ' + err.message);
     } finally {
@@ -414,40 +379,10 @@ const TestCreate = () => {
           onImageRemove={() => setBgImage(null)}
           time={time}
           onTimeChange={setTime}
-          character={character}
-          onCharacterChange={setCharacter}
           category={category}
           onCategoryChange={setCategory}
         />
       </div>
-
-      {/* ── PIN Modal ── */}
-      {pin && (
-        <div className="pin-modal-overlay" onClick={() => setPin(null)}>
-          <div className="pin-modal" onClick={e => e.stopPropagation()}>
-            <div className="pin-modal-icon">🎉</div>
-            <h2 className="pin-modal-title">Test saqlandi!</h2>
-            <p className="pin-modal-desc">Boshqa foydalanuvchilar quyidagi PIN kodni kiritib testga kirishlari mumkin:</p>
-            <div className="pin-modal-code">
-              {pin.split('').map((d, i) => (
-                <span key={i} className="pin-digit">{d}</span>
-              ))}
-            </div>
-            <p className="pin-modal-hint">PIN kodni nusxalang va o'rtoqlaringizga yuboring</p>
-            <div className="pin-modal-btns">
-              <button
-                className="pin-copy-btn"
-                onClick={() => navigator.clipboard.writeText(pin)}
-              >
-                Nusxalash
-              </button>
-              <button className="pin-close-btn" onClick={() => { setPin(null); navigate('/dashboard'); }}>
-                Dashboardga o'tish
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

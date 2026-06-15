@@ -317,6 +317,89 @@
   transition: background 0.15s;
 }
 .db-test-play:hover { background: var(--primary-dark); }
+.db-test-host {
+  padding: 9px 18px;
+  background: #e8344e;
+  color: #fff;
+  border: none;
+  border-radius: var(--r-sm, 8px);
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.db-test-host:hover { background: #cf2942; }
+.db-test-host:disabled { opacity: 0.6; cursor: default; }
+
+/* ── Host Live PIN modal ── */
+.db-pin-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+.db-pin-modal {
+  background: #fff;
+  border-radius: 22px;
+  padding: 32px 28px 24px;
+  width: 100%;
+  max-width: 420px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+}
+.db-pin-icon { font-size: 44px; margin-bottom: 8px; }
+.db-pin-title { font-size: 22px; font-weight: 900; color: var(--ink); margin: 0 0 8px; }
+.db-pin-desc { font-size: 14px; color: var(--text-3); margin: 0 0 20px; }
+.db-pin-code {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 22px;
+}
+.db-pin-digit {
+  width: 44px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--primary-light);
+  border: 2px solid var(--primary-mid);
+  border-radius: 12px;
+  font-family: var(--font-mono, monospace);
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--primary-dark, #4338ca);
+}
+.db-pin-btns { display: flex; gap: 10px; margin-bottom: 12px; }
+.db-pin-copy, .db-pin-go {
+  flex: 1;
+  padding: 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  border: none;
+}
+.db-pin-copy { background: var(--border2, #eef); color: var(--ink); }
+.db-pin-go { background: var(--primary); color: #fff; }
+.db-pin-go:hover { background: var(--primary-dark); }
+.db-pin-close {
+  background: none;
+  border: none;
+  color: var(--text-3);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
 .db-test-del {
   width: 38px;
   height: 38px;

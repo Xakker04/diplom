@@ -1,6 +1,6 @@
 import { memo, useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, query, where, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, where, getDocs, deleteDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { getCategory } from '../../data/categories';
@@ -93,6 +93,9 @@ const Dashboard = () => {
 
   const [tests, setTests]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hostPin, setHostPin] = useState(null);   // { code }
+  const [hosting, setHosting] = useState(null);    // hosting bo'layotgan testId
+  const [copied, setCopied]   = useState(false);
 
   const fetchTests = useCallback(async () => {
     if (!currentUser?.email) { setLoading(false); return; }
@@ -119,6 +122,35 @@ const Dashboard = () => {
       setTests(prev => prev.filter(t => t.id !== id));
     } catch (e) {
       alert('O\'chirishda xatolik: ' + e.message);
+    }
+  };
+
+  const generatePin = async () => {
+    let code, exists = true;
+    while (exists) {
+      code = String(Math.floor(100000 + Math.random() * 900000));
+      const snap = await getDocs(query(collection(db, 'tests'), where('pin', '==', code)));
+      exists = !snap.empty;
+    }
+    return code;
+  };
+
+  /* Jonli sessiya boshlash: yangi PIN + eski o'yinchilarni tozalash */
+  const hostLive = async (t) => {
+    setHosting(t.id);
+    try {
+      const code = await generatePin();
+      // oldingi o'yinchilarni tozalaymiz (toza sessiya)
+      const playersSnap = await getDocs(collection(db, 'tests', t.id, 'players'));
+      await Promise.all(playersSnap.docs.map(d => deleteDoc(doc(db, 'tests', t.id, 'players', d.id))));
+      await updateDoc(doc(db, 'tests', t.id), { pin: code, live: true, hostedAt: Date.now() });
+      setTests(prev => prev.map(x => x.id === t.id ? { ...x, pin: code, live: true } : x));
+      setHostPin({ code, testId: t.id });
+      setCopied(false);
+    } catch (e) {
+      alert('Xatolik: ' + e.message);
+    } finally {
+      setHosting(null);
     }
   };
 
@@ -207,12 +239,16 @@ const Dashboard = () => {
                       <div className="db-test-meta">
                         {cat && <span className="db-test-badge">{cat.emoji} {cat.label}</span>}
                         <span>{t.cards?.length ?? 0} savol</span>
-                        <span className="db-test-pin">PIN: {t.pin}</span>
+                        {t.live && t.pin && <span className="db-test-pin">🔴 Jonli · PIN: {t.pin}</span>}
                       </div>
                     </div>
                     <div className="db-test-actions">
-                      <button className="db-test-play" onClick={() => navigate(`/play/${t.id}`)}>
-                        O'ynash
+                      <button
+                        className="db-test-host"
+                        onClick={() => hostLive(t)}
+                        disabled={hosting === t.id}
+                      >
+                        {hosting === t.id ? '...' : '🔴 Host Live'}
                       </button>
                       <button className="db-test-del" onClick={() => deleteTest(t.id)} title="O'chirish">
                         <IconTrash />
@@ -226,6 +262,34 @@ const Dashboard = () => {
         </div>
 
       </div>
+
+      {/* ── Host Live PIN modal ── */}
+      {hostPin && (
+        <div className="db-pin-overlay" onClick={() => setHostPin(null)}>
+          <div className="db-pin-modal" onClick={e => e.stopPropagation()}>
+            <div className="db-pin-icon">🔴</div>
+            <h2 className="db-pin-title">Jonli sessiya boshlandi!</h2>
+            <p className="db-pin-desc">O'quvchilar bosh sahifada shu PIN bilan kirib, jonli yechishadi:</p>
+            <div className="db-pin-code">
+              {hostPin.code.split('').map((d, i) => (
+                <span key={i} className="db-pin-digit">{d}</span>
+              ))}
+            </div>
+            <div className="db-pin-btns">
+              <button
+                className="db-pin-copy"
+                onClick={() => { navigator.clipboard.writeText(hostPin.code); setCopied(true); }}
+              >
+                {copied ? '✓ Nusxalandi' : 'Nusxalash'}
+              </button>
+              <button className="db-pin-go" onClick={() => navigate(`/play/${hostPin.testId}`)}>
+                Testga o'tish
+              </button>
+            </div>
+            <button className="db-pin-close" onClick={() => setHostPin(null)}>Yopish</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -1,12 +1,11 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import {
-  doc, getDoc, addDoc, updateDoc, collection, onSnapshot, query, orderBy,
+  doc, getDoc, addDoc, updateDoc, deleteDoc, collection, onSnapshot, query, orderBy,
 } from 'firebase/firestore';
 import { db } from '../../firebase';
-import Character3D from '../character/Character3D';
-import { getCharacter } from '../character/characters';
 import { getCategory } from '../../data/categories';
+import Avatar, { AVATARS } from '../avatar/Avatar';
 import AIEvaluation from '../ai/AIEvaluation';
 import './QuizGame.css';
 
@@ -53,6 +52,7 @@ const QuizGame = () => {
   const [lastGain, setLastGain]   = useState(null);       // oxirgi savolda olingan ball
 
   const [name, setName]           = useState(location.state?.username || '');
+  const [avatar, setAvatar]       = useState(location.state?.avatar || 'moose');
   const [playerId, setPlayerId]   = useState(null);
   const [board, setBoard]         = useState([]);         // jonli reyting
   const [log, setLog]             = useState([]);         // AI tahlil uchun javoblar
@@ -126,13 +126,15 @@ const QuizGame = () => {
     try {
       const ref = await addDoc(collection(db, 'tests', testId, 'players'), {
         username: name.trim(),
+        avatar,
         score: 0,
         joinedAt: Date.now(),
+        lastActive: Date.now(),
       });
       setPlayerId(ref.id);
     } catch { /* reyting yozilmasa ham o'yin davom etadi */ }
     startQuestion(0);
-  }, [name, testId, startQuestion]);
+  }, [name, avatar, testId, startQuestion]);
 
   /* ── Qayta urinish ── */
   const retry = useCallback(() => {
@@ -143,13 +145,39 @@ const QuizGame = () => {
     startQuestion(0);
   }, [playerId, testId, startQuestion]);
 
-  /* ── Jonli reyting (onSnapshot) ── */
+  /* ── Jonli reyting (onSnapshot) + eski o'yinchilarni tozalash ── */
   useEffect(() => {
     const qy = query(collection(db, 'tests', testId, 'players'), orderBy('score', 'desc'));
     const unsub = onSnapshot(qy, snap => {
-      setBoard(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      setBoard(all);
+      // Tashlab ketilgan (60 soniyadan beri faolsiz) o'yinchilarni o'chiramiz
+      const staleBefore = Date.now() - 60000;
+      all.forEach(p => {
+        const t = p.lastActive ?? p.joinedAt ?? 0;
+        if (t && t < staleBefore) {
+          deleteDoc(doc(db, 'tests', testId, 'players', p.id)).catch(() => {});
+        }
+      });
     }, () => {});
     return () => unsub();
+  }, [testId]);
+
+  /* ── Heartbeat: o'ynayotganda har 8 soniyada faollikni yangilab turamiz ── */
+  useEffect(() => {
+    if (!playerId) return;
+    const beat = () => updateDoc(doc(db, 'tests', testId, 'players', playerId), { lastActive: Date.now() }).catch(() => {});
+    beat();
+    const iv = setInterval(beat, 8000);
+    return () => clearInterval(iv);
+  }, [playerId, testId]);
+
+  /* ── Chiqib ketganda o'yinchini reytingdan o'chiramiz ── */
+  const playerIdRef = useRef(null);
+  useEffect(() => { playerIdRef.current = playerId; }, [playerId]);
+  useEffect(() => () => {
+    const id = playerIdRef.current;
+    if (id) deleteDoc(doc(db, 'tests', testId, 'players', id)).catch(() => {});
   }, [testId]);
 
   /* ── 3. Timer (handleAnswer'dan KEYIN) ── */
@@ -169,23 +197,17 @@ const QuizGame = () => {
 
   const timerPct = test ? (timeLeft / (test.time ?? 30)) * 100 : 100;
 
-  /* ── Personaj (mascot) ── */
-  const charId = getCharacter(test?.character)?.id;
-  const Mascot = charId ? (
-    <div className="qg-mascot">
-      <Character3D variant={charId} />
-    </div>
-  ) : null;
-
-  /* ── Reyting ── */
-  const myRank = board.findIndex(p => p.id === playerId);
+  /* ── Faqat hozir o'ynayotgan o'yinchilar (20s ichida faol) ── */
+  const liveBoard = board.filter(p => Date.now() - (p.lastActive ?? p.joinedAt ?? 0) < 20000);
+  const myRank = liveBoard.findIndex(p => p.id === playerId);
   const renderBoard = (compact) => (
     <div className={`qg-board ${compact ? 'compact' : ''}`}>
       <div className="qg-board-title">🏆 Reyting</div>
-      {board.length === 0 && <div className="qg-board-empty">Hali o'yinchi yo'q</div>}
-      {board.slice(0, compact ? 5 : 20).map((p, i) => (
+      {liveBoard.length === 0 && <div className="qg-board-empty">Hali o'yinchi yo'q</div>}
+      {liveBoard.slice(0, compact ? 5 : 20).map((p, i) => (
         <div key={p.id} className={`qg-board-row ${p.id === playerId ? 'me' : ''}`}>
           <span className="qg-board-rank">{i + 1}</span>
+          <span className="qg-board-av"><Avatar id={p.avatar || 'moose'} size={22} /></span>
           <span className="qg-board-name">{p.username}</span>
           <span className="qg-board-score">{p.score}</span>
         </div>
@@ -207,9 +229,21 @@ const QuizGame = () => {
     <div className="qg-slide" style={bgStyle()}>
       <div className="qg-overlay" />
       <div className="qg-intro-card">
-        <div className="qg-intro-emoji">📝</div>
-        <h1 className="qg-intro-title">{test.title}</h1>
-        <p className="qg-intro-meta">{test.cards.length} ta savol · {test.time ?? 30} sek/savol</p>
+        <div className="qg-avatar-label">Personajingizni tanlang</div>
+        <div className="qg-avatars">
+          {AVATARS.map(a => (
+            <button
+              key={a.id}
+              type="button"
+              className={`qg-avatar ${avatar === a.id ? 'selected' : ''}`}
+              onClick={() => setAvatar(a.id)}
+              title={a.label}
+            >
+              <Avatar id={a.id} size={46} />
+            </button>
+          ))}
+        </div>
+
         <input
           className="qg-name-input"
           type="text"
@@ -222,11 +256,10 @@ const QuizGame = () => {
         <button className="qg-start-btn" onClick={beginGame} disabled={!name.trim()}>
           Boshlash
         </button>
-        {board.length > 0 && (
-          <p className="qg-intro-joined">{board.length} o'yinchi qatnashmoqda</p>
+        {liveBoard.length > 0 && (
+          <p className="qg-intro-joined">{liveBoard.length} o'yinchi qatnashmoqda</p>
         )}
       </div>
-      {Mascot}
     </div>
   );
 
@@ -234,18 +267,32 @@ const QuizGame = () => {
   if (phase === 'finish') return (
     <div className="qg-slide" style={bgStyle()}>
       <div className="qg-overlay" />
-      <div className="qg-intro-card qg-finish-card">
-        <div className="qg-intro-emoji">
-          {correctCount === test.cards.length ? '🏆' : correctCount >= test.cards.length / 2 ? '🎉' : '😔'}
-        </div>
-        <h2 className="qg-intro-title">Test tugadi!</h2>
-        <p className="qg-finish-score">{score}</p>
-        <p className="qg-intro-meta">
-          {correctCount} / {test.cards.length} to'g'ri javob
-          {myRank >= 0 && ` · ${myRank + 1}-o'rin`}
-        </p>
+      <div className="qg-finish-wrap">
+        <h2 className="qg-finish-head">🏆 Natijalar</h2>
 
-        {renderBoard(false)}
+        {/* ── Podium (o'suvchi diagramma) ── */}
+        <div className="qg-podium">
+          {[
+            { p: liveBoard[1], place: 2 },
+            { p: liveBoard[0], place: 1 },
+            { p: liveBoard[2], place: 3 },
+          ].filter(x => x.p).map(({ p, place }, i) => (
+            <div key={p.id} className={`qg-pod-col place-${place}`}>
+              <div className="qg-pod-avatar" style={{ animationDelay: `${i * 0.25}s` }}>
+                <Avatar id={p.avatar || 'moose'} size={76} />
+              </div>
+              <div className="qg-pod-bar">
+                <div className={`qg-pod-badge badge-${place}`}>{place}</div>
+                <div className="qg-pod-name">{p.username}</div>
+                <div className="qg-pod-score">{p.score} ball</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {myRank >= 3 && (
+          <p className="qg-finish-self">Siz: {myRank + 1}-o'rin · {score} ball</p>
+        )}
 
         <div className="qg-finish-btns">
           <button className="qg-ai-btn" onClick={() => setShowAI(true)}>
@@ -259,8 +306,6 @@ const QuizGame = () => {
           </button>
         </div>
       </div>
-      {Mascot}
-
       {showAI && (
         <AIEvaluation
           payload={{
@@ -333,9 +378,7 @@ const QuizGame = () => {
             );
           })}
         </div>
-      </div>
-      {Mascot}
-    </div>
+      </div>    </div>
   );
 };
 
