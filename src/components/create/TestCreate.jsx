@@ -1,6 +1,6 @@
 import { memo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, doc, updateDoc, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../firebase';
 import { useAuth } from '../../context/AuthContext';
 import { CATEGORIES } from '../../data/categories';
@@ -230,6 +230,8 @@ const TestCreate = () => {
   const [time, setTime]                 = useState(30);
   const [category, setCategory]         = useState('matematika');
   const [saving, setSaving]             = useState(false);
+  const [hosting, setHosting]           = useState(false);
+  const [hostPin, setHostPin]           = useState(null);   // { code, testId }
 
   const selectedCard = cards.find(c => c.id === selectedId) ?? cards[0];
 
@@ -271,28 +273,61 @@ const TestCreate = () => {
     reader.readAsDataURL(file);
   };
 
+  /* Testni saqlab, hujjat ID sini qaytaradi */
+  const saveTest = async () => {
+    const ref = await addDoc(collection(db, 'tests'), {
+      title: testTitle.trim(),
+      cards: cards.map(({ id: _id, ...rest }) => rest),
+      bg: selectedBg,
+      bgImage: bgImage ?? null,
+      time,
+      category,
+      pin: null,
+      live: false,
+      ownerEmail: currentUser?.email ?? null,
+      ownerName: currentUser?.name ?? null,
+      createdAt: Date.now(),
+    });
+    return ref.id;
+  };
+
+  const generatePin = async () => {
+    let code, exists = true;
+    while (exists) {
+      code = String(Math.floor(100000 + Math.random() * 900000));
+      const snap = await getDocs(query(collection(db, 'tests'), where('pin', '==', code)));
+      exists = !snap.empty;
+    }
+    return code;
+  };
+
+  /* Saqlash: faqat saqlanadi (Learn'da ko'rinadi) */
   const handleSave = async () => {
     if (!testTitle.trim()) { alert("Test sarlavhasini kiriting!"); return; }
     setSaving(true);
     try {
-      await addDoc(collection(db, 'tests'), {
-        title: testTitle.trim(),
-        cards: cards.map(({ id: _id, ...rest }) => rest),
-        bg: selectedBg,
-        bgImage: bgImage ?? null,
-        time,
-        category,
-        pin: null,
-        live: false,
-        ownerEmail: currentUser?.email ?? null,
-        ownerName: currentUser?.name ?? null,
-        createdAt: Date.now(),
-      });
+      await saveTest();
       navigate('/dashboard');
     } catch (err) {
       alert('Xatolik: ' + err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  /* Host Live: saqlaydi + PIN beradi (jonli o'ynash) */
+  const handleHostLive = async () => {
+    if (!testTitle.trim()) { alert("Test sarlavhasini kiriting!"); return; }
+    setHosting(true);
+    try {
+      const id = await saveTest();
+      const code = await generatePin();
+      await updateDoc(doc(db, 'tests', id), { pin: code, live: true, hostedAt: Date.now() });
+      setHostPin({ code, testId: id });
+    } catch (err) {
+      alert('Xatolik: ' + err.message);
+    } finally {
+      setHosting(false);
     }
   };
 
@@ -318,7 +353,11 @@ const TestCreate = () => {
           onChange={e => setTestTitle(e.target.value)}
         />
 
-        <button className="tc-save-btn" onClick={handleSave} disabled={saving}>
+        <button className="tc-host-btn" onClick={handleHostLive} disabled={hosting || saving}>
+          {hosting ? '...' : '🔴 Host Live'}
+        </button>
+
+        <button className="tc-save-btn" onClick={handleSave} disabled={saving || hosting}>
           {saving ? <span className="tc-save-spinner" /> : 'Saqlash'}
         </button>
       </div>
@@ -383,6 +422,34 @@ const TestCreate = () => {
           onCategoryChange={setCategory}
         />
       </div>
+
+      {/* ── Host Live PIN modal ── */}
+      {hostPin && (
+        <div className="pin-modal-overlay" onClick={() => setHostPin(null)}>
+          <div className="pin-modal" onClick={e => e.stopPropagation()}>
+            <div className="pin-modal-icon">🔴</div>
+            <h2 className="pin-modal-title">Jonli sessiya boshlandi!</h2>
+            <p className="pin-modal-desc">O'quvchilar bosh sahifada shu PIN bilan jonli yechishadi:</p>
+            <div className="pin-modal-code">
+              {hostPin.code.split('').map((d, i) => (
+                <span key={i} className="pin-digit">{d}</span>
+              ))}
+            </div>
+            <p className="pin-modal-hint">PIN kodni nusxalang va o'quvchilarga yuboring</p>
+            <div className="pin-modal-btns">
+              <button
+                className="pin-copy-btn"
+                onClick={() => navigator.clipboard.writeText(hostPin.code)}
+              >
+                Nusxalash
+              </button>
+              <button className="pin-close-btn" onClick={() => navigate(`/play/${hostPin.testId}`)}>
+                Testga o'tish
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

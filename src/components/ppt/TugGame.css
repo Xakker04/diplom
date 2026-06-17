@@ -1,0 +1,204 @@
+.tug-page {
+  min-height: calc(100vh - 58px);
+  background: #fff;
+  padding: 20px 24px 40px;
+  max-width: 900px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.tug-top {
+  display: flex;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.tug-back {
+  background: none;
+  border: none;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-2, #555);
+  cursor: pointer;
+  font-family: inherit;
+}
+.tug-title {
+  flex: 1;
+  text-align: center;
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--ink, #1a1a2e);
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.tug-spacer { width: 64px; }
+
+/* Hisob ko'rsatkichi */
+.tug-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+.tug-bar-team {
+  font-size: 14px;
+  font-weight: 800;
+  width: 50px;
+}
+.tug-bar-team.blue { color: #2f80ed; text-align: right; }
+.tug-bar-team.red  { color: #e8344e; }
+.tug-bar-track {
+  flex: 1;
+  height: 12px;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #2f80ed 0 50%, #eb5a3c 50% 100%);
+  position: relative;
+}
+.tug-bar-fill {
+  position: absolute;
+  top: -4px;
+  width: 6px;
+  height: 20px;
+  background: #fff;
+  border: 2px solid #1a1a2e;
+  border-radius: 4px;
+  transform: translateX(-50%);
+  transition: left 0.6s cubic-bezier(.5,1.6,.4,1);
+}
+
+/* Sahna (rasm) */
+.tug-scene {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: #fff;
+  margin: 4px 0 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 150px;
+}
+/* knot bo'yicha siljish (yumshoq) */
+.tug-shift {
+  transition: transform 0.8s cubic-bezier(.5,1.4,.4,1);
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+.tug-img {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  display: block;
+  transform-origin: center bottom;
+}
+
+/* doimiy tortishish tebranishi */
+.tug-wobble { animation: tugWobble 1.1s ease-in-out infinite; }
+@keyframes tugWobble {
+  0%   { transform: translateX(-6px) rotate(-0.5deg); }
+  50%  { transform: translateX(6px)  rotate(0.5deg); }
+  100% { transform: translateX(-6px) rotate(-0.5deg); }
+}
+
+/* javob berilganda kuchli tortqilash */
+.tug-yank { animation: tugYank 0.5s ease-in-out 2; }
+@keyframes tugYank {
+  0%   { transform: translateX(0) rotate(0); }
+  25%  { transform: translateX(-12px) rotate(-1.2deg); }
+  75%  { transform: translateX(12px)  rotate(1.2deg); }
+  100% { transform: translateX(0) rotate(0); }
+}
+
+/* Navbat */
+.tug-turn {
+  text-align: center;
+  font-size: 17px;
+  font-weight: 800;
+  padding: 8px;
+  border-radius: 12px;
+  margin: 6px auto 14px;
+  width: fit-content;
+  padding-inline: 22px;
+}
+.tug-turn.blue { background: #e8f1fe; color: #2f80ed; }
+.tug-turn.red  { background: #fdece8; color: #e8344e; }
+
+/* Savol */
+.tug-question {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink, #1a1a2e);
+  margin-bottom: 18px;
+}
+
+/* Javoblar */
+.tug-answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  max-width: 560px;
+  margin: 0 auto;
+  width: 100%;
+}
+.tug-ans {
+  padding: 16px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 14px;
+  border: 2.5px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.12s, opacity 0.2s, box-shadow 0.2s;
+  color: #fff;
+}
+.tug-ans.blue { background: #2f80ed; }
+.tug-ans.red  { background: #eb5a3c; }
+.tug-ans:hover:not(:disabled) { transform: translateY(-2px); }
+.tug-ans.correct { box-shadow: 0 0 0 4px rgba(38,197,93,0.5); background: #26c55d !important; }
+.tug-ans.wrong   { opacity: 0.5; }
+.tug-ans.dim     { opacity: 0.4; }
+.tug-ans:disabled { cursor: default; }
+
+/* G'alaba */
+.tug-win-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.tug-win-card {
+  background: #fff;
+  border-radius: 24px;
+  padding: 36px 40px 30px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.4);
+  border-top: 8px solid #ccc;
+}
+.tug-win-card.blue { border-top-color: #2f80ed; }
+.tug-win-card.red  { border-top-color: #e8344e; }
+.tug-win-card h2 { font-size: 26px; font-weight: 900; margin: 6px 0 22px; color: #1a1a2e; }
+.tug-win-emoji { font-size: 56px; }
+.tug-win-btns { display: flex; gap: 12px; justify-content: center; }
+.tug-win-again, .tug-win-exit {
+  padding: 12px 26px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  border: none;
+}
+.tug-win-again { background: var(--primary, #6c63ff); color: #fff; }
+.tug-win-exit  { background: #eee; color: #333; }
+
+@media (max-width: 560px) {
+  .tug-title { font-size: 22px; }
+  .tug-question { font-size: 19px; }
+  .tug-answers { grid-template-columns: 1fr; }
+}

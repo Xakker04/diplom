@@ -82,7 +82,7 @@ const IconTrash = () => (
 
 const ACTIONS = [
   { Icon: IconFilePlus,     title: 'Test yaratish',       desc: "Savollar va javoblar bilan test tuzing va o'quvchilaringizni sinab ko'ring", route: '/create/test', cls: 'v1' },
-  { Icon: IconPresentation, title: 'Taqdimot yaratish',   desc: "Vizual slaydlar bilan ta'sirchan taqdimot tayyorlang",                      route: '/create/ppt',  cls: 'v2' },
+  { Icon: IconPresentation, title: 'Interaktiv test yaratish',   desc: "Vizual effektlar o'yinlar bilan test yaratish",                      route: '/create/ppt',  cls: 'v2' },
   { Icon: IconBarChart,     title: "Natijalarni ko'rish", desc: "O'quvchilarning test natijalari va statistikasi",                            route: null,           cls: 'v3' },
 ];
 

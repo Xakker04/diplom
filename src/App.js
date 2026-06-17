@@ -1,7 +1,7 @@
 import './App.css';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
-import { Main, Login, Register, Navbar, Game, Dashboard, TestCreate, QuizGame, Learn } from './pages';
+import { Main, Login, Register, Navbar, Game, Dashboard, TestCreate, QuizGame, Learn, TugGame } from './pages';
 import { useAuth } from './context/AuthContext';
 import Chatbot from './components/chatbot/Chatbot';
 
@@ -34,6 +34,9 @@ function App() {
         } />
         <Route path="/create/test" element={
           <ProtectedRoute><TestCreate /></ProtectedRoute>
+        } />
+        <Route path="/create/ppt" element={
+          <ProtectedRoute><TugGame /></ProtectedRoute>
         } />
       </Routes>
     </AuthProvider>
