@@ -7,6 +7,8 @@ import { db } from '../../firebase';
 import { getCategory } from '../../data/categories';
 import Avatar, { AVATARS } from '../avatar/Avatar';
 import AIEvaluation from '../ai/AIEvaluation';
+import Wheel, { rotationForIndex } from '../ppt/Wheel';
+import { playSpin, playCorrect, playWrong, playWin, playTick, playGo } from '../ppt/sounds';
 import './QuizGame.css';
 
 const LABELS = ['A', 'B', 'C', 'D'];
@@ -58,6 +60,17 @@ const QuizGame = () => {
   const [log, setLog]             = useState([]);         // AI tahlil uchun javoblar
   const [showAI, setShowAI]       = useState(false);      // AI tahlil modali
 
+  // Baraban rejimi (interaktiv testlar uchun)
+  const [done, setDone]           = useState([]);         // qaysi savollar tugagani
+  const [wheelPhase, setWheelPhase] = useState('spin');   // spin | answer
+  const [rotation, setRotation]   = useState(0);
+  const [spinning, setSpinning]   = useState(false);
+
+  // Jonli (host) lobbi + sanoq
+  const hosted = !!location.state?.live;                  // PIN orqali kirgan jonli sessiya
+  const [hostStarted, setHostStarted] = useState(false);  // o'qituvchi boshladimi
+  const [count, setCount]         = useState(3);          // 3..1 sanoq
+
   /* ── Firebase dan test yuklash ── */
   useEffect(() => {
     (async () => {
@@ -76,6 +89,7 @@ const QuizGame = () => {
   }, [testId]);
 
   const currentCard = test?.cards?.[qIdx];
+  const isWheel = !!test?.wheel;
 
   /* ── 1. Savol boshlash (handleAnswer'dan OLDIN) ── */
   const startQuestion = useCallback((idx) => {
@@ -95,6 +109,7 @@ const QuizGame = () => {
     const total   = test.time ?? 30;
     const gained  = isRight ? 500 + Math.round((500 * Math.max(0, timeLeft)) / total) : 0;
 
+    if (isRight) playCorrect(); else playWrong();   // ovoz
     setLastGain(gained);
     if (isRight) setCorrect(p => p + 1);
 
@@ -114,15 +129,38 @@ const QuizGame = () => {
     }
 
     setTimeout(() => {
-      if (qIdx + 1 < test.cards.length) startQuestion(qIdx + 1);
-      else setPhase('finish');
+      if (isWheel) {
+        const nd = done.slice();
+        nd[qIdx] = true;
+        setDone(nd);
+        if (nd.every(Boolean)) { playWin(); setPhase('finish'); }
+        else setWheelPhase('spin');
+      } else if (qIdx + 1 < test.cards.length) {
+        startQuestion(qIdx + 1);
+      } else {
+        playWin();
+        setPhase('finish');
+      }
     }, 1800);
-  }, [selected, currentCard, qIdx, test, startQuestion, timeLeft, score, playerId, testId]);
+  }, [selected, currentCard, qIdx, test, startQuestion, timeLeft, score, playerId, testId, isWheel, done]);
 
   /* ── O'yinni boshlash: o'yinchini reytingga qo'shish ── */
+  /* O'yinni haqiqiy boshlash (sanoqdan keyin) */
+  const beginNow = useCallback(() => {
+    if (test?.wheel) { setSelected(null); setRotation(0); setWheelPhase('spin'); setPhase('question'); }
+    else startQuestion(0);
+  }, [test, startQuestion]);
+
+  /* 1-2-3 sanoq fazasiga o'tish */
+  const startPlay = useCallback(() => {
+    setCount(3);
+    setPhase('countdown');
+  }, []);
+
   const beginGame = useCallback(async () => {
     if (!name.trim()) return;
     setScore(0); setCorrect(0); setLastGain(null); setLog([]);
+    setDone(Array(test.cards.length).fill(false));
     try {
       const ref = await addDoc(collection(db, 'tests', testId, 'players'), {
         username: name.trim(),
@@ -133,17 +171,38 @@ const QuizGame = () => {
       });
       setPlayerId(ref.id);
     } catch { /* reyting yozilmasa ham o'yin davom etadi */ }
-    startQuestion(0);
-  }, [name, avatar, testId, startQuestion]);
+    if (hosted) setPhase('waiting');   // o'qituvchi boshlashini kutamiz
+    else startPlay();
+  }, [name, avatar, testId, test, hosted, startPlay]);
+
+  /* ── Barabanni aylantirish: bo'sh savolga tushadi → savol chiqadi ── */
+  const spinWheel = useCallback(() => {
+    if (spinning) return;
+    const remaining = done.map((d, i) => (d ? null : i)).filter(i => i !== null);
+    if (remaining.length === 0) return;
+    const target = remaining[Math.floor(Math.random() * remaining.length)];
+    const newRot = rotationForIndex(rotation, target, test.cards.length, 4);
+    setSpinning(true);
+    setRotation(newRot);
+    playSpin(3.2);
+    setTimeout(() => {
+      setSpinning(false);
+      setQIdx(target);
+      setSelected(null);
+      setTimeLeft(test.time ?? 30);
+      setWheelPhase('answer');
+    }, 3300);
+  }, [spinning, done, rotation, test]);
 
   /* ── Qayta urinish ── */
   const retry = useCallback(() => {
     setScore(0); setCorrect(0); setLastGain(null); setLog([]);
+    setDone(Array(test.cards.length).fill(false));
     if (playerId) {
       updateDoc(doc(db, 'tests', testId, 'players', playerId), { score: 0 }).catch(() => {});
     }
-    startQuestion(0);
-  }, [playerId, testId, startQuestion]);
+    startPlay();
+  }, [playerId, testId, startPlay, test]);
 
   /* ── Jonli reyting (onSnapshot) + eski o'yinchilarni tozalash ── */
   useEffect(() => {
@@ -183,10 +242,33 @@ const QuizGame = () => {
   /* ── 3. Timer (handleAnswer'dan KEYIN) ── */
   useEffect(() => {
     if (phase !== 'question' || selected !== null) return;
+    if (isWheel && wheelPhase !== 'answer') return;   // baraban aylanayotganda timer yo'q
     if (timeLeft <= 0) { handleAnswer(null); return; }
     const t = setTimeout(() => setTimeLeft(p => p - 1), 1000);
     return () => clearTimeout(t);
-  }, [phase, timeLeft, selected, handleAnswer]);
+  }, [phase, timeLeft, selected, handleAnswer, isWheel, wheelPhase]);
+
+  /* ── O'qituvchi "Boshlash" ni bosganini kuzatish (jonli) ── */
+  useEffect(() => {
+    if (!hosted) return;
+    const unsub = onSnapshot(doc(db, 'tests', testId), snap => {
+      setHostStarted(!!snap.data()?.started);
+    }, () => {});
+    return () => unsub();
+  }, [hosted, testId]);
+
+  useEffect(() => {
+    if (hosted && hostStarted && phase === 'waiting') startPlay();
+  }, [hosted, hostStarted, phase, startPlay]);
+
+  /* ── 1-2-3 sanoq ── */
+  useEffect(() => {
+    if (phase !== 'countdown') return;
+    if (count <= 0) { playGo(); beginNow(); return; }
+    playTick();
+    const t = setTimeout(() => setCount(c => c - 1), 850);
+    return () => clearTimeout(t);
+  }, [phase, count, beginNow]);
 
   /* ── Fon style ── */
   const bgStyle = () => {
@@ -322,6 +404,30 @@ const QuizGame = () => {
     </div>
   );
 
+  /* WAITING — o'qituvchi boshlashini kutish */
+  if (phase === 'waiting') return (
+    <div className="qg-slide" style={bgStyle()}>
+      <div className="qg-overlay" />
+      <div className="qg-intro-card">
+        <div className="qg-wait-me"><Avatar id={avatar} size={64} /></div>
+        <h2 className="qg-intro-title">{name}</h2>
+        <p className="qg-intro-meta">O'qituvchi boshlashini kuting...</p>
+        <div className="qg-wait-dots"><span /><span /><span /></div>
+        {liveBoard.length > 0 && (
+          <p className="qg-intro-joined">{liveBoard.length} ishtirokchi qo'shildi</p>
+        )}
+      </div>
+    </div>
+  );
+
+  /* COUNTDOWN — 1,2,3 */
+  if (phase === 'countdown') return (
+    <div className="qg-slide" style={bgStyle()}>
+      <div className="qg-overlay" />
+      <div key={count} className="qg-countdown">{count > 0 ? count : '🚀'}</div>
+    </div>
+  );
+
   /* QUESTION */
   return (
     <div className="qg-slide" style={bgStyle()}>
@@ -330,6 +436,16 @@ const QuizGame = () => {
       {/* Jonli reyting (chap-yuqori) */}
       <div className="qg-board-float">{renderBoard(true)}</div>
 
+      {isWheel && wheelPhase === 'spin' ? (
+        <div className="qg-wheel-area">
+          <p className="qg-wheel-q">{done.filter(Boolean).length} / {test.cards.length} · Barabanni aylantiring</p>
+          <Wheel count={test.cards.length} rotation={rotation} spinning={spinning} done={done} />
+          <button className="qg-spin-btn" onClick={spinWheel} disabled={spinning}>
+            {spinning ? 'Aylanmoqda...' : '🎡 Aylantirish'}
+          </button>
+          <span className="qg-score-chip">{score} ball</span>
+        </div>
+      ) : (
       <div className="qg-question-wrap">
 
         {/* Yuqori panel: progress + timer + ball */}
@@ -378,7 +494,9 @@ const QuizGame = () => {
             );
           })}
         </div>
-      </div>    </div>
+      </div>
+      )}
+    </div>
   );
 };
 

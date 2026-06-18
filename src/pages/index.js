@@ -7,4 +7,5 @@ export { default as Dashboard } from '../components/dashboard/Dashboard';
 export { default as TestCreate } from '../components/create/TestCreate';
 export { default as QuizGame }  from '../components/quizgame/QuizGame';
 export { default as Learn }     from '../components/learn/Learn';
-export { default as TugGame }   from '../components/ppt/TugGame';
+export { default as InteractiveCreate } from '../components/ppt/InteractiveCreate';
+export { default as HostLive }  from '../components/host/HostLive';

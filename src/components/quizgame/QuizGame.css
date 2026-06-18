@@ -219,6 +219,88 @@
   .place-3 .qg-pod-bar { height: 100px; }
 }
 
+/* ── Kutish (lobbi) ── */
+.qg-wait-me {
+  display: inline-flex;
+  margin-bottom: 14px;
+}
+.qg-wait-me svg { border-radius: 16px; }
+.qg-wait-dots {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  margin: 18px 0 6px;
+}
+.qg-wait-dots span {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  opacity: 0.5;
+  animation: qgWaitDot 1.2s ease-in-out infinite;
+}
+.qg-wait-dots span:nth-child(2) { animation-delay: 0.2s; }
+.qg-wait-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes qgWaitDot { 0%,100% { opacity: 0.4; transform: scale(0.8); } 50% { opacity: 1; transform: scale(1.2); } }
+
+/* ── Sanoq (1,2,3) ── */
+.qg-countdown {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(90px, 24vw, 200px);
+  font-weight: 900;
+  color: #fff;
+  text-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  animation: qgCount 0.85s ease-out;
+}
+@keyframes qgCount {
+  0%   { transform: scale(0.3); opacity: 0; }
+  40%  { transform: scale(1.15); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.85; }
+}
+
+/* ── Baraban (jonli o'yin) ── */
+.qg-wheel-area {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  color: #fff;
+  text-align: center;
+}
+.qg-wheel-q { font-size: 18px; font-weight: 700; opacity: 0.9; margin: 0; }
+.wheel-wrap { position: relative; width: 300px; max-width: 78vw; }
+.wheel-pointer {
+  position: absolute;
+  top: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 14px solid transparent;
+  border-right: 14px solid transparent;
+  border-top: 24px solid #fff;
+  z-index: 3;
+  filter: drop-shadow(0 2px 3px rgba(0,0,0,0.4));
+}
+.wheel-spin { width: 100%; filter: drop-shadow(0 8px 22px rgba(0,0,0,0.35)); }
+.wheel-spin svg { width: 100%; height: auto; display: block; }
+.qg-spin-btn {
+  padding: 15px 34px;
+  background: #fff;
+  color: #6c2bd9;
+  border: none;
+  border-radius: 14px;
+  font-size: 18px;
+  font-weight: 900;
+  cursor: pointer;
+  font-family: inherit;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.25);
+  transition: transform 0.12s, opacity 0.2s;
+}
+.qg-spin-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.qg-spin-btn:disabled { opacity: 0.7; cursor: default; }
+
 /* ── QUESTION layout ── */
 .qg-question-wrap {
   position: relative;

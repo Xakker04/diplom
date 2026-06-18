@@ -72,7 +72,7 @@ const Main = () => {
       if (snap.empty || !snap.docs[0].data().live) {
         setError('Jonli sessiya topilmadi. PIN noto\'g\'ri yoki sessiya tugagan.');
       } else {
-        navigate(`/play/${snap.docs[0].id}`);
+        navigate(`/play/${snap.docs[0].id}`, { state: { live: true } });
       }
     } catch (err) {
       console.error('Firebase error:', err);

@@ -322,7 +322,7 @@ const TestCreate = () => {
     try {
       const id = await saveTest();
       const code = await generatePin();
-      await updateDoc(doc(db, 'tests', id), { pin: code, live: true, hostedAt: Date.now() });
+      await updateDoc(doc(db, 'tests', id), { pin: code, live: true, started: false, hostedAt: Date.now() });
       setHostPin({ code, testId: id });
     } catch (err) {
       alert('Xatolik: ' + err.message);
@@ -443,8 +443,8 @@ const TestCreate = () => {
               >
                 Nusxalash
               </button>
-              <button className="pin-close-btn" onClick={() => navigate(`/play/${hostPin.testId}`)}>
-                Testga o'tish
+              <button className="pin-close-btn" onClick={() => navigate(`/host/${hostPin.testId}`)}>
+                ▶ Start
               </button>
             </div>
           </div>

@@ -82,7 +82,7 @@ const IconTrash = () => (
 
 const ACTIONS = [
   { Icon: IconFilePlus,     title: 'Test yaratish',       desc: "Savollar va javoblar bilan test tuzing va o'quvchilaringizni sinab ko'ring", route: '/create/test', cls: 'v1' },
-  { Icon: IconPresentation, title: 'Interaktiv test yaratish',   desc: "Vizual effektlar o'yinlar bilan test yaratish",                      route: '/create/ppt',  cls: 'v2' },
+  { Icon: IconPresentation, title: 'Interaktiv test yaratish', desc: "Vizual effektlar va o'yinlar bilan test yaratish",                       route: '/create/ppt',  cls: 'v2' },
   { Icon: IconBarChart,     title: "Natijalarni ko'rish", desc: "O'quvchilarning test natijalari va statistikasi",                            route: null,           cls: 'v3' },
 ];
 
@@ -143,7 +143,7 @@ const Dashboard = () => {
       // oldingi o'yinchilarni tozalaymiz (toza sessiya)
       const playersSnap = await getDocs(collection(db, 'tests', t.id, 'players'));
       await Promise.all(playersSnap.docs.map(d => deleteDoc(doc(db, 'tests', t.id, 'players', d.id))));
-      await updateDoc(doc(db, 'tests', t.id), { pin: code, live: true, hostedAt: Date.now() });
+      await updateDoc(doc(db, 'tests', t.id), { pin: code, live: true, started: false, hostedAt: Date.now() });
       setTests(prev => prev.map(x => x.id === t.id ? { ...x, pin: code, live: true } : x));
       setHostPin({ code, testId: t.id });
       setCopied(false);
@@ -282,8 +282,8 @@ const Dashboard = () => {
               >
                 {copied ? '✓ Nusxalandi' : 'Nusxalash'}
               </button>
-              <button className="db-pin-go" onClick={() => navigate(`/play/${hostPin.testId}`)}>
-                Testga o'tish
+              <button className="db-pin-go" onClick={() => navigate(`/host/${hostPin.testId}`)}>
+                ▶ Start
               </button>
             </div>
             <button className="db-pin-close" onClick={() => setHostPin(null)}>Yopish</button>
